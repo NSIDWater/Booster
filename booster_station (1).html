@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Booster Station Log</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f3;
+    --bg-tertiary: #eeede8;
+    --bg-info: #e6f1fb;
+    --text: #1a1a18;
+    --text-secondary: #6b6b68;
+    --text-tertiary: #9b9b97;
+    --text-info: #0c447c;
+    --border: rgba(0,0,0,0.12);
+    --border-secondary: rgba(0,0,0,0.22);
+    --border-info: #85b7eb;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c;
+      --bg-secondary: #2a2a28;
+      --bg-tertiary: #323230;
+      --bg-info: #042c53;
+      --text: #f0efea;
+      --text-secondary: #a8a8a4;
+      --text-tertiary: #6e6e6a;
+      --text-info: #85b7eb;
+      --border: rgba(255,255,255,0.1);
+      --border-secondary: rgba(255,255,255,0.2);
+      --border-info: #185fa5;
+    }
+  }
+
+  body {
+    background: var(--bg-tertiary);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding-bottom: 3rem;
+  }
+
+  header {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0.85rem 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 { font-size: 17px; font-weight: 500; color: var(--text); margin-bottom: 0.7rem; }
+
+  .main-tabs { display: flex; }
+  .main-tab {
+    flex: 1; padding: 10px 6px; font-size: 13px; font-weight: 500;
+    border: none; border-bottom: 2.5px solid transparent;
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; text-align: center;
+    -webkit-tap-highlight-color: transparent; transition: color 0.1s;
+  }
+  .main-tab.active { color: var(--text-info); border-bottom-color: var(--text-info); }
+
+  .page { display: none; padding: 1rem; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg); padding: 1rem; margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.07em; color: var(--text-secondary); margin-bottom: 10px;
+  }
+
+  /* ---- Booster residuals ---- */
+  .loc-card {
+    background: var(--bg-secondary); border: 0.5px solid var(--border);
+    border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px;
+  }
+  .loc-card:last-child { margin-bottom: 0; }
+  .loc-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .residual-row { display: flex; gap: 10px; }
+  .residual-field { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .residual-field label { font-size: 11px; color: var(--text-secondary); }
+  .res-input-wrap { display: flex; align-items: center; gap: 4px; }
+  .res-input-wrap input {
+    flex: 1; min-width: 0; padding: 9px 6px; font-size: 16px;
+    border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md);
+    background: var(--bg); color: var(--text); text-align: center; -webkit-appearance: none;
+  }
+  .res-input-wrap input:focus { outline: none; box-shadow: 0 0 0 2px var(--border-info); }
+  .unit { font-size: 11px; color: var(--text-tertiary); white-space: nowrap; }
+
+  /* ---- Booster flow/pump ---- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 12px; color: var(--text-secondary); }
+  .field-input {
+    padding: 10px; font-size: 16px; border: 0.5px solid var(--border-secondary);
+    border-radius: var(--radius-md); background: var(--bg); color: var(--text);
+    width: 100%; -webkit-appearance: none; text-align: center;
+  }
+  .field-input:focus { outline: none; box-shadow: 0 0 0 2px var(--border-info); }
+  hr.divider { border: none; border-top: 0.5px solid var(--border); margin: 1rem 0; }
+  .pump-block { margin-bottom: 1rem; }
+  .pump-block:last-of-type { margin-bottom: 0; }
+  .pump-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+  .pump-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+  .result-box {
+    background: var(--bg-secondary); border: 0.5px solid var(--border);
+    border-radius: var(--radius-md); padding: 9px 10px; text-align: center;
+  }
+  .result-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 1px; }
+  .result-value { font-size: 22px; font-weight: 500; color: var(--text); }
+  .calc-note { font-size: 11px; color: var(--text-tertiary); margin-top: 8px; }
+
+  /* ---- Shift selector: side by side ---- */
+  .shift-btns { display: flex; flex-direction: row; gap: 6px; }
+  .shift-btn {
+    flex: 1; padding: 9px 4px; font-size: 12px; font-weight: 500;
+    border: 0.5px solid var(--border-secondary); border-radius: var(--radius-md);
+    background: transparent; color: var(--text-secondary);
+    cursor: pointer; text-align: center; line-height: 1.3;
+    -webkit-tap-highlight-color: transparent; transition: background 0.1s;
+  }
+  .shift-btn .shift-time {
+    font-size: 10px; font-weight: 400; color: var(--text-tertiary); display: block; margin-top: 3px;
+  }
+  .shift-btn.active { background: var(--bg-info); color: var(--text-info); border-color: var(--border-info); }
+  .shift-btn.active .shift-time { color: var(--text-info); opacity: 0.75; }
+
+  /* ---- Hourly table ---- */
+  .tbl-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -1rem; padding: 0 1rem; }
+
+  table.hourly {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    min-width: 520px;
+  }
+
+  table.hourly thead tr { background: var(--bg-secondary); }
+
+  table.hourly th {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-secondary);
+    padding: 7px 5px; border: 0.5px solid var(--border);
+    text-align: center; white-space: nowrap;
+  }
+
+  table.hourly th.group-hdr {
+    font-size: 10px; background: var(--bg-tertiary);
+    color: var(--text-tertiary); padding: 4px 5px;
+  }
+
+  table.hourly td {
+    padding: 3px 3px; border: 0.5px solid var(--border); vertical-align: middle;
+  }
+
+  table.hourly td.hr-cell {
+    font-size: 12px; font-weight: 500; color: var(--text-info);
+    background: var(--bg-info); text-align: center;
+    padding: 6px 6px; white-space: nowrap; min-width: 52px;
+  }
+
+  table.hourly tbody tr:nth-child(even) td:not(.hr-cell) {
+    background: var(--bg-secondary);
+  }
+
+  table.hourly td input {
+    width: 100%; min-width: 52px; padding: 7px 3px; font-size: 14px;
+    border: none; border-radius: 4px;
+    background: transparent; color: var(--text);
+    text-align: center; -webkit-appearance: none;
+  }
+  table.hourly td input:focus {
+    outline: none; background: var(--bg-info);
+    box-shadow: 0 0 0 2px var(--border-info); border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Booster Station Log</h1>
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="showPage('booster',this)">Booster Station</button>
+    <button class="main-tab" onclick="showPage('hourly',this)">Hourly Testing</button>
+  </div>
+</header>
+
+<!-- ========== BOOSTER STATION ========== -->
+<div class="page active" id="page-booster">
+
+  <div class="card" style="margin-top:1rem;">
+    <p class="section-title">Chlorine residuals</p>
+
+    <div class="loc-card">
+      <p class="loc-label">Point of entry (POE)</p>
+      <div class="residual-row">
+        <div class="residual-field">
+          <label>Free Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+        <div class="residual-field">
+          <label>Total Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loc-card">
+      <p class="loc-label">Tank</p>
+      <div class="residual-row">
+        <div class="residual-field">
+          <label>Free Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+        <div class="residual-field">
+          <label>Total Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="loc-card">
+      <p class="loc-label">Altitude valve</p>
+      <div class="residual-row">
+        <div class="residual-field">
+          <label>Free Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+        <div class="residual-field">
+          <label>Total Cl₂</label>
+          <div class="res-input-wrap">
+            <input type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" />
+            <span class="unit">mg/L</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="section-title">Flow readings</p>
+    <div class="two-col">
+      <div class="field-group">
+        <label class="field-label">Previous flow</label>
+        <input class="field-input" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" id="prev-flow" oninput="calcPumps()" />
+      </div>
+      <div class="field-group">
+        <label class="field-label">Current flow</label>
+        <input class="field-input" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00" id="curr-flow" oninput="calcPumps()" />
+      </div>
+    </div>
+
+    <hr class="divider" />
+    <p class="section-title">Pump settings</p>
+
+    <div class="pump-block">
+      <p class="pump-name">Chlorine pump</p>
+      <div class="pump-inputs">
+        <div class="field-group">
+          <label class="field-label">Previous %</label>
+          <input class="field-input" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="0.0" id="prev-cl" oninput="calcPumps()" />
+        </div>
+        <div class="result-box">
+          <div class="result-label">Calculated %</div>
+          <div class="result-value" id="calc-cl">—</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="pump-block">
+      <p class="pump-name">Ammonia pump</p>
+      <div class="pump-inputs">
+        <div class="field-group">
+          <label class="field-label">Previous %</label>
+          <input class="field-input" type="number" inputmode="decimal" step="0.1" min="0" max="100" placeholder="0.0" id="prev-nh3" oninput="calcPumps()" />
+        </div>
+        <div class="result-box">
+          <div class="result-label">Calculated %</div>
+          <div class="result-value" id="calc-nh3">—</div>
+        </div>
+      </div>
+    </div>
+
+    <p class="calc-note">Calculated = (current flow ÷ previous flow) × previous pump %</p>
+  </div>
+
+</div>
+
+<!-- ========== HOURLY TESTING ========== -->
+<div class="page" id="page-hourly">
+
+  <div class="card" style="margin-top:1rem;">
+    <p class="section-title">Select shift</p>
+    <div class="shift-btns">
+      <button class="shift-btn active" onclick="setShift(0,this)">
+        Day
+        <span class="shift-time">6am – 4pm</span>
+      </button>
+      <button class="shift-btn" onclick="setShift(1,this)">
+        Evening
+        <span class="shift-time">4pm – 12am</span>
+      </button>
+      <button class="shift-btn" onclick="setShift(2,this)">
+        Night
+        <span class="shift-time">10pm – 8am</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:1rem 0;">
+    <div style="padding:0 1rem;">
+      <p class="section-title" id="shift-label">Day shift — 0600 to 1500</p>
+    </div>
+    <div class="tbl-scroll">
+      <table class="hourly">
+        <thead>
+          <tr>
+            <th rowspan="2" style="min-width:52px;">Hour</th>
+            <th colspan="2" class="group-hdr">POE residual (mg/L)</th>
+            <th colspan="2" class="group-hdr">Chlorine pump</th>
+            <th colspan="2" class="group-hdr">Ammonia pump</th>
+            <th colspan="2" class="group-hdr">Ammonia (mg/L)</th>
+          </tr>
+          <tr>
+            <th>Free Cl₂</th>
+            <th>Total Cl₂</th>
+            <th>Setting %</th>
+            <th>+/− chg</th>
+            <th>Setting %</th>
+            <th>+/− chg</th>
+            <th>Mono NH₃</th>
+            <th>Free NH₃</th>
+          </tr>
+        </thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.main-tab').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function calcPumps() {
+  var pf   = parseFloat(document.getElementById('prev-flow').value);
+  var cf   = parseFloat(document.getElementById('curr-flow').value);
+  var pcl  = parseFloat(document.getElementById('prev-cl').value);
+  var pnh3 = parseFloat(document.getElementById('prev-nh3').value);
+  var ratio = (!isNaN(pf) && !isNaN(cf) && pf > 0) ? cf / pf : null;
+  document.getElementById('calc-cl').textContent  = (ratio !== null && !isNaN(pcl))  ? (ratio * pcl).toFixed(1)  : '—';
+  document.getElementById('calc-nh3').textContent = (ratio !== null && !isNaN(pnh3)) ? (ratio * pnh3).toFixed(1) : '—';
+}
+
+var shifts = [
+  { label: 'Day shift — 0600 to 1500',    hours: ['0600','0700','0800','0900','1000','1100','1200','1300','1400','1500'] },
+  { label: 'Evening shift — 1600 to 0100', hours: ['1600','1700','1800','1900','2000','2100','2200','2300','0000','0100'] },
+  { label: 'Night shift — 2200 to 0700',   hours: ['2200','2300','0000','0100','0200','0300','0400','0500','0600','0700'] }
+];
+
+var hourlyData = [{},{},{}];
+var cols = ['free_cl','total_cl','cl_pct','cl_chg','nh3_pct','nh3_chg','mono_nh3','free_nh3'];
+
+function fid(s,h,c){ return 's'+s+'_'+h+'_'+c; }
+
+function buildHourly(idx) {
+  document.getElementById('shift-label').textContent = shifts[idx].label;
+  var tbody = document.getElementById('log-body');
+  tbody.innerHTML = '';
+  shifts[idx].hours.forEach(function(hr) {
+    var tr = document.createElement('tr');
+    var htd = document.createElement('td');
+    htd.className = 'hr-cell';
+    htd.textContent = hr;
+    tr.appendChild(htd);
+    cols.forEach(function(col) {
+      var td = document.createElement('td');
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.inputMode = 'decimal';
+      inp.placeholder = '—';
+      inp.id = fid(idx, hr, col);
+      var saved = hourlyData[idx][hr] && hourlyData[idx][hr][col];
+      if (saved !== undefined) inp.value = saved;
+      (function(si,h,c){
+        inp.addEventListener('input', function(){
+          if (!hourlyData[si][h]) hourlyData[si][h] = {};
+          hourlyData[si][h][c] = this.value;
+        });
+      })(idx, hr, col);
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function setShift(idx, btn) {
+  document.querySelectorAll('.shift-btn').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  buildHourly(idx);
+}
+
+buildHourly(0);
+</script>
+</body>
+</html>
